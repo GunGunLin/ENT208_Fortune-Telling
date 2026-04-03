@@ -1,0 +1,91 @@
+import { NextRequest } from 'next/server';
+import { requireUserContext, getSystemAdminClient, jsonError, jsonOk } from '@/lib/api-utils';
+import { isValidUUID } from '@/lib/validation';
+
+const ALLOWED_FIELDS = [
+    'name',
+    'chart_data',
+    'birth_date',
+    'birth_time',
+    'gender',
+    'birth_place',
+    'is_leap_month',
+    'calendar_type',
+] as const;
+
+type AllowedField = (typeof ALLOWED_FIELDS)[number];
+
+export async function POST(request: NextRequest) {
+    try {
+        // 1. 鉴权
+        const auth = await requireUserContext(request);
+        if ('error' in auth) {
+            return jsonError(auth.error.message, auth.error.status);
+        }
+        const { user } = auth;
+
+        // 2. 参数解析
+        const body = await request.json();
+        const { chartId, payload } = body as {
+            chartId?: string;
+            payload?: Record<string, unknown>;
+        };
+
+        // 3. 参数校验
+        if (!chartId || !payload) {
+            return jsonError('缺少必要参数', 400);
+        }
+
+        if (!isValidUUID(chartId)) {
+            return jsonError('chartId 格式不合法', 400);
+        }
+
+        // 白名单过滤 payload
+        const sanitizedPayload: Partial<Record<AllowedField, unknown>> = {};
+        for (const key of ALLOWED_FIELDS) {
+            if (key in payload) {
+                sanitizedPayload[key] = payload[key];
+            }
+        }
+
+        if (Object.keys(sanitizedPayload).length === 0) {
+            return jsonError('没有可更新的字段', 400);
+        }
+
+        // 4. 业务逻辑
+        // 当 chart_data 被更新时，同步提取 day_master 和 day_branch
+        if (sanitizedPayload.chart_data && typeof sanitizedPayload.chart_data === 'object') {
+            const cd = sanitizedPayload.chart_data as Record<string, unknown>;
+            if (cd.dayMaster) {
+                (sanitizedPayload as Record<string, unknown>).day_master = cd.dayMaster;
+            }
+            const fourPillars = cd.fourPillars as Record<string, unknown> | undefined;
+            const day = fourPillars?.day as Record<string, unknown> | undefined;
+            if (day?.branch) {
+                (sanitizedPayload as Record<string, unknown>).day_branch = day.branch;
+            }
+        }
+
+        const supabase = getSystemAdminClient();
+        const { data, error } = await supabase
+            .from('bazi_charts')
+            .update(sanitizedPayload)
+            .eq('id', chartId)
+            .eq('user_id', user.id)
+            .select('id')
+            .maybeSingle();
+
+        if (error) {
+            return jsonError(error.message, 500);
+        }
+
+        if (!data) {
+            return jsonError('未找到可更新的命盘', 404);
+        }
+
+        return jsonOk({ success: true });
+    } catch (error) {
+        console.error('Update bazi chart failed:', error);
+        return jsonError('更新失败', 500);
+    }
+}
