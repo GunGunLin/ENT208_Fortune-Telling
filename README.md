@@ -1,9 +1,5 @@
 # Luckie-Bot: AI Desktop Sprite / 元气算命小精灵 🤖✨
 
-<p align="center">
-  English | <a href="./README_CN.md">中文</a>
-</p>
-
 ---
 
 ## 🌟 Project Vision / 项目愿景
@@ -62,7 +58,7 @@
 
 This project is developed using **MicroPython / Arduino (C++)**. The backend connects to an AI Language Model API for generating healing content.
 
-本项目使用 **MicroPython / Arduino (C++)** 进行固件开发，后端接入 **AI 模型 API** 生成治愈语录。
+本项目使用 **MicroPython** 进行固件开发，后端接入 **AI 模型 API** 生成治愈语录。
 
 ---
 
