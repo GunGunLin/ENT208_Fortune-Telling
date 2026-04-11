@@ -11,7 +11,7 @@ from PySide6.QtGui import QPixmap
 UDP_IP = "0.0.0.0"
 UDP_PORT = 12345
 # 建议确认你的 Key 是否有效
-SiliconFlow_KEY = "sk-jwnmnvbeavdyvzfzewbatzmveutjqxmtlcwokkllagarbdtb"
+SiliconFlow_KEY = "Your api KEY"
 API_URL = "https://api.siliconflow.cn/v1/chat/completions"
 
 
